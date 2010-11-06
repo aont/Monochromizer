@@ -26,35 +26,26 @@ using System.Runtime.InteropServices;
 
 namespace Aont
 {
-    public unsafe class BmpProc : IDisposable
+    public class BmpProc : IDisposable
     {
         bool flagDispose = false;
 
         protected Bitmap bitmap;
         public readonly int Width, Height;
         protected BitmapData bmpData;
-        protected byte* Scan0;
+        protected IntPtr Scan0;
         protected int Stride;
         public readonly int DataLength;
 
         public readonly PixelFormat Format;
         protected BmpProc(Bitmap @Bitmap, PixelFormat Format)
         {
-            /*
-            {
-                var BmpFormat = @Bitmap.PixelFormat;
-                if (BmpFormat != Format)
-                {
-                    throw new Exception(string.Format("{0} not supported!", BmpFormat.ToString()));
-                }
-            }
-            */
-            bitmap = @Bitmap;
-            Width = @Bitmap.Width;
-            Height = @Bitmap.Height;
+            bitmap = Bitmap;
+            Width = Bitmap.Width;
+            Height = Bitmap.Height;
             Rectangle rect = new Rectangle(0, 0, Width, Height);
-            bmpData = @Bitmap.LockBits(rect, ImageLockMode.ReadWrite, Format);
-            Scan0 = (byte*)bmpData.Scan0;
+            bmpData = Bitmap.LockBits(rect, ImageLockMode.ReadWrite, Format);
+            Scan0 = bmpData.Scan0;
             Stride = Math.Abs(bmpData.Stride);
 
             DataLength = Stride * Height;
@@ -80,23 +71,20 @@ namespace Aont
             Dispose(false);
         }
     }
-    public unsafe class BmpProc32 : BmpProc
+    public class BmpProc32 : BmpProc
     {
         public BmpProc32(Bitmap @Bitmap) : base(Bitmap, PixelFormat.Format32bppArgb) { }
         public Color this[int x, int y]
         {
             get
             {
-                byte* PixelB = Scan0 + Stride * y + x * 4;
-                return Color.FromArgb(*(PixelB + 3), *(PixelB + 2), *(PixelB + 1), *PixelB);
+                int ofs = Stride * y + x * 4;
+                return Color.FromArgb(Marshal.ReadByte(Scan0, ofs + 3), Marshal.ReadByte(Scan0, ofs + 2), Marshal.ReadByte(Scan0, ofs + 1), Marshal.ReadByte(Scan0));
             }
             set
             {
-                byte* PixelB = Scan0 + Stride * y + x * 4;
-                *PixelB = value.B;
-                *(PixelB + 1) = value.G;
-                *(PixelB + 2) = value.R;
-                *(PixelB + 3) = value.A;
+                int ofs = Stride * y + x * 4;
+                Marshal.WriteInt32(Scan0, ofs, value.ToArgb());
             }
         }
         public Color GetPixel(int x, int y)
@@ -104,22 +92,22 @@ namespace Aont
         public void SetPixel(int x, int y, Color color)
         { this[x, y] = color; }
     }
-    public unsafe class BmpProc24 : BmpProc
+    public  class BmpProc24 : BmpProc
     {
         public BmpProc24(Bitmap @Bitmap) : base(Bitmap, PixelFormat.Format24bppRgb) { }
         public Color this[int x, int y]
         {
             get
             {
-                byte* PixelB = Scan0 + Stride * y + x * 3;
-                return Color.FromArgb(*(PixelB + 2), *(PixelB + 1), *PixelB);
+                int ofs = Stride * y + x * 3;
+                return Color.FromArgb(Marshal.ReadByte(Scan0, ofs + 2), Marshal.ReadByte(Scan0, ofs + 1), Marshal.ReadByte(Scan0));
             }
             set
             {
-                byte* PixelB = Scan0 + Stride * y + x * 3;
-                *PixelB = value.B;
-                *(PixelB + 1) = value.G;
-                *(PixelB + 2) = value.R;
+                int ofs = Stride * y + x * 3;
+                Marshal.WriteByte(Scan0, ofs, value.R);
+                Marshal.WriteByte(Scan0, ofs + 1, value.R);
+                Marshal.WriteByte(Scan0, ofs + 2, value.R);
             }
         }
         public Color GetPixel(int x, int y)
@@ -127,21 +115,25 @@ namespace Aont
         public void SetPixel(int x, int y, Color color)
         { this[x, y] = color; }
     }
-    public unsafe class BmpProc8 : BmpProc
+    public class BmpProc8 : BmpProc
     {
         public Color[] Palette { get { return bitmap.Palette.Entries; } }
-        public BmpProc8(Bitmap @Bitmap)
-            : base(Bitmap, PixelFormat.Format8bppIndexed)
-        { }
+        public BmpProc8(Bitmap @Bitmap) : base(Bitmap, PixelFormat.Format8bppIndexed) { }
         public byte this[int x, int y]
         {
-            get { return *(Scan0 + Stride * y + x); }
-            set { *(Scan0 + Stride * y + x) = value; }
+            get
+            {
+                return Marshal.ReadByte(Scan0, Stride * y + x);
+            }
+            set
+            {
+                Marshal.WriteByte(Scan0, Stride * y + x, value);
+            }
         }
         public byte this[int index]
         {
-            get { return *(Scan0 + index); }
-            set { *(Scan0 + index) = value; }
+            get { return Marshal.ReadByte(Scan0, index); }
+            set { Marshal.WriteByte(Scan0, index, value); }
         }
         public Color GetPixel(int x, int y)
         {
@@ -159,37 +151,58 @@ namespace Aont
             {
                 this[x, y] = (byte)i;
             }
+            else
+            {
+                throw new Exception("Color not found in Palette");
+            }
         }
     }
-    public unsafe class BmpProc1 : BmpProc
+    public class BmpProc1 : BmpProc
     {
         public BmpProc1(Bitmap @Bitmap) : base(Bitmap, PixelFormat.Format1bppIndexed) { }
         public bool this[int x, int y]
         {
             get
             {
-                return ((*(Scan0 + Stride * y + x / 8) >> (7 - (x % 8)) & 1) == 1);
+                int xr;
+                int ofs = Stride * y + Math.DivRem(x, 8, out xr);
+                return ((Marshal.ReadByte(Scan0, ofs) >> (7 - xr) & 1) == 1);
             }
 
             set
             {
-                byte* pPixel = Scan0 + Stride * y + x / 8;
+                int xr;
+                int ofs = Stride * y + Math.DivRem(x, 8, out xr);
                 if (value)
-                    *pPixel = (byte)(*pPixel | (1 << (7 - (x % 8))));
+                    Marshal.WriteByte(Scan0, ofs,
+                        (byte)(Marshal.ReadByte(Scan0, ofs) | (1 << (7 - xr)))
+                        );
                 else
-                    *pPixel = (byte)(*pPixel & (~(1 << (7 - (x % 8)))));
+                    Marshal.WriteByte(Scan0, ofs,
+                        (byte)(Marshal.ReadByte(Scan0, ofs) & (~(1 << (7 - xr))))
+                        );
             }
         }
         public bool this[int index]
         {
-            get { return ((*(Scan0 + index / 8) >> (7 - (index % 8)) & 1) == 1); }
+            get
+            {
+                int xr;
+                int ofs = Math.DivRem(index, 8, out xr);
+                return ((Marshal.ReadByte(Scan0, ofs) >> (7 - xr) & 1) == 1);
+            }
             set
             {
-                byte* pPixel = Scan0 + index / 8;
+                int xr;
+                int ofs = Math.DivRem(index, 8, out xr);
                 if (value)
-                    *pPixel = (byte)(*pPixel | (1 << (7 - (index % 8))));
+                    Marshal.WriteByte(Scan0, ofs,
+                        (byte)(Marshal.ReadByte(Scan0, ofs) | (1 << (7 - xr)))
+                        );
                 else
-                    *pPixel = (byte)(*pPixel & (~(1 << (7 - (index % 8)))));
+                    Marshal.WriteByte(Scan0, ofs,
+                        (byte)(Marshal.ReadByte(Scan0, ofs) & (~(1 << (7 - xr))))
+                        );
             }
         }
     }
