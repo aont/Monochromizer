@@ -42,7 +42,11 @@
             this.monochromeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.settingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.feedbackToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.fixedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.brightnessToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.averageToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripTextBox1 = new System.Windows.Forms.ToolStripTextBox();
+            this.sigmaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripTextBox2 = new System.Windows.Forms.ToolStripTextBox();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -59,11 +63,15 @@
             // 
             // openFileDialog1
             // 
-            this.openFileDialog1.FileName = "openFileDialog1";
+            this.openFileDialog1.Filter = "Image File(*.bmp;*.jpg;*.jpeg;*.png;*.gif)|*.bmp;*.jpg;*.jpeg;*.png;*.gif|Any Fil" +
+                "e(*.*)|*.*";
+            this.openFileDialog1.Title = "Open Image File";
             this.openFileDialog1.FileOk += new System.ComponentModel.CancelEventHandler(this.openFileDialog1_FileOk);
             // 
             // saveFileDialog1
             // 
+            this.saveFileDialog1.Filter = "Image File(*.bmp;*.png;*.gif)|*.bmp;*.png;*.gif|Any File(*.*)|*.*";
+            this.saveFileDialog1.Title = "Save Converted Image";
             this.saveFileDialog1.FileOk += new System.ComponentModel.CancelEventHandler(this.saveFileDialog1_FileOk);
             // 
             // menuStrip1
@@ -85,7 +93,7 @@
             this.openToolStripMenuItem,
             this.saveConvertedImageToolStripMenuItem});
             this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
-            this.fileToolStripMenuItem.Size = new System.Drawing.Size(36, 20);
+            this.fileToolStripMenuItem.Size = new System.Drawing.Size(35, 20);
             this.fileToolStripMenuItem.Text = "&File";
             // 
             // openToolStripMenuItem
@@ -108,20 +116,20 @@
             this.originalToolStripMenuItem,
             this.convertedToolStripMenuItem});
             this.showToolStripMenuItem.Name = "showToolStripMenuItem";
-            this.showToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
+            this.showToolStripMenuItem.Size = new System.Drawing.Size(45, 20);
             this.showToolStripMenuItem.Text = "&Show";
             // 
             // originalToolStripMenuItem
             // 
             this.originalToolStripMenuItem.Name = "originalToolStripMenuItem";
-            this.originalToolStripMenuItem.Size = new System.Drawing.Size(122, 22);
+            this.originalToolStripMenuItem.Size = new System.Drawing.Size(125, 22);
             this.originalToolStripMenuItem.Text = "&Original";
             this.originalToolStripMenuItem.Click += new System.EventHandler(this.originalToolStripMenuItem_Click);
             // 
             // convertedToolStripMenuItem
             // 
             this.convertedToolStripMenuItem.Name = "convertedToolStripMenuItem";
-            this.convertedToolStripMenuItem.Size = new System.Drawing.Size(122, 22);
+            this.convertedToolStripMenuItem.Size = new System.Drawing.Size(125, 22);
             this.convertedToolStripMenuItem.Text = "&Converted";
             this.convertedToolStripMenuItem.Click += new System.EventHandler(this.convertedToolStripMenuItem_Click);
             // 
@@ -136,7 +144,7 @@
             // monochromeToolStripMenuItem
             // 
             this.monochromeToolStripMenuItem.Name = "monochromeToolStripMenuItem";
-            this.monochromeToolStripMenuItem.Size = new System.Drawing.Size(134, 22);
+            this.monochromeToolStripMenuItem.Size = new System.Drawing.Size(135, 22);
             this.monochromeToolStripMenuItem.Text = "&Monochrome";
             this.monochromeToolStripMenuItem.Click += new System.EventHandler(this.ConvertClick);
             // 
@@ -144,24 +152,52 @@
             // 
             this.settingsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.feedbackToolStripMenuItem,
-            this.fixedToolStripMenuItem});
+            this.brightnessToolStripMenuItem});
             this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(59, 20);
+            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(58, 20);
             this.settingsToolStripMenuItem.Text = "&Settings";
             // 
             // feedbackToolStripMenuItem
             // 
             this.feedbackToolStripMenuItem.Name = "feedbackToolStripMenuItem";
-            this.feedbackToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.feedbackToolStripMenuItem.Size = new System.Drawing.Size(124, 22);
             this.feedbackToolStripMenuItem.Text = "&Feedback";
             this.feedbackToolStripMenuItem.Click += new System.EventHandler(this.feedbackToolStripMenuItem_Click);
             // 
-            // fixedToolStripMenuItem
+            // brightnessToolStripMenuItem
             // 
-            this.fixedToolStripMenuItem.Name = "fixedToolStripMenuItem";
-            this.fixedToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
-            this.fixedToolStripMenuItem.Text = "&Fixed";
-            this.fixedToolStripMenuItem.Click += new System.EventHandler(this.fixedToolStripMenuItem_Click);
+            this.brightnessToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.averageToolStripMenuItem,
+            this.toolStripTextBox1,
+            this.sigmaToolStripMenuItem,
+            this.toolStripTextBox2});
+            this.brightnessToolStripMenuItem.Name = "brightnessToolStripMenuItem";
+            this.brightnessToolStripMenuItem.Size = new System.Drawing.Size(124, 22);
+            this.brightnessToolStripMenuItem.Text = "&Brightness";
+            this.brightnessToolStripMenuItem.DropDownOpening += new System.EventHandler(this.brightnessToolStripMenuItem_DropDownOpening);
+            this.brightnessToolStripMenuItem.DropDownClosed += new System.EventHandler(this.brightnessToolStripMenuItem_DropDownClosed);
+            // 
+            // averageToolStripMenuItem
+            // 
+            this.averageToolStripMenuItem.Name = "averageToolStripMenuItem";
+            this.averageToolStripMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.averageToolStripMenuItem.Text = "Average";
+            // 
+            // toolStripTextBox1
+            // 
+            this.toolStripTextBox1.Name = "toolStripTextBox1";
+            this.toolStripTextBox1.Size = new System.Drawing.Size(100, 21);
+            // 
+            // sigmaToolStripMenuItem
+            // 
+            this.sigmaToolStripMenuItem.Name = "sigmaToolStripMenuItem";
+            this.sigmaToolStripMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.sigmaToolStripMenuItem.Text = "Sigma";
+            // 
+            // toolStripTextBox2
+            // 
+            this.toolStripTextBox2.Name = "toolStripTextBox2";
+            this.toolStripTextBox2.Size = new System.Drawing.Size(100, 21);
             // 
             // ImageForm
             // 
@@ -197,7 +233,11 @@
         private System.Windows.Forms.ToolStripMenuItem monochromeToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem feedbackToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem fixedToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem brightnessToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem averageToolStripMenuItem;
+        private System.Windows.Forms.ToolStripTextBox toolStripTextBox1;
+        private System.Windows.Forms.ToolStripMenuItem sigmaToolStripMenuItem;
+        private System.Windows.Forms.ToolStripTextBox toolStripTextBox2;
     }
 }
 
