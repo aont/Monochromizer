@@ -26,26 +26,26 @@ using System.Runtime.InteropServices;
 
 namespace Aont
 {
-    public class BmpProc : IDisposable
+    public unsafe class BmpProc : IDisposable
     {
         bool flagDispose = false;
 
         protected Bitmap bitmap;
         public readonly int Width, Height;
         protected BitmapData bmpData;
-        protected IntPtr Scan0;
+        protected byte* Scan0;
         protected int Stride;
         public readonly int DataLength;
 
         public readonly PixelFormat Format;
-        protected BmpProc(Bitmap @Bitmap, PixelFormat Format)
+        protected BmpProc(Bitmap bitmap, PixelFormat Format)
         {
-            bitmap = Bitmap;
-            Width = Bitmap.Width;
-            Height = Bitmap.Height;
+            this.bitmap = bitmap;
+            Width = bitmap.Width;
+            Height = bitmap.Height;
             Rectangle rect = new Rectangle(0, 0, Width, Height);
-            bmpData = Bitmap.LockBits(rect, ImageLockMode.ReadWrite, Format);
-            Scan0 = bmpData.Scan0;
+            bmpData = bitmap.LockBits(rect, ImageLockMode.ReadWrite, Format);
+            Scan0 = (byte*)bmpData.Scan0;
             Stride = Math.Abs(bmpData.Stride);
 
             DataLength = Stride * Height;
@@ -61,6 +61,8 @@ namespace Aont
                 this.flagDispose = true;
             }
         }
+        public virtual Color GetPixel(int x, int y) { throw new NotImplementedException(); }
+        public virtual void SetPixel(int x, int y, Color color) { throw new NotImplementedException(); }
         public void Dispose()
         {
             Dispose(true);
@@ -71,75 +73,67 @@ namespace Aont
             Dispose(false);
         }
     }
-    public class BmpProc32 : BmpProc
+    public unsafe class BmpProc32 : BmpProc
     {
-        public BmpProc32(Bitmap @Bitmap) : base(Bitmap, PixelFormat.Format32bppArgb) { }
+        public BmpProc32(Bitmap bitmap) : base(bitmap, PixelFormat.Format32bppArgb) { }
         public Color this[int x, int y]
         {
             get
             {
-                int ofs = Stride * y + x * 4;
-                return Color.FromArgb(Marshal.ReadByte(Scan0, ofs + 3), Marshal.ReadByte(Scan0, ofs + 2), Marshal.ReadByte(Scan0, ofs + 1), Marshal.ReadByte(Scan0));
+                return Color.FromArgb(*(Int32*)&Scan0[Stride * y + x * 4]);
             }
             set
             {
-                int ofs = Stride * y + x * 4;
-                Marshal.WriteInt32(Scan0, ofs, value.ToArgb());
+                *(Int32*)&Scan0[Stride * y + x * 4] = value.ToArgb();
             }
         }
-        public Color GetPixel(int x, int y)
+        public override Color GetPixel(int x, int y)
         { return this[x, y]; }
-        public void SetPixel(int x, int y, Color color)
+        public override void SetPixel(int x, int y, Color color)
         { this[x, y] = color; }
     }
-    public  class BmpProc24 : BmpProc
+    public unsafe class BmpProc24 : BmpProc
     {
-        public BmpProc24(Bitmap @Bitmap) : base(Bitmap, PixelFormat.Format24bppRgb) { }
+        public BmpProc24(Bitmap bitmap) : base(bitmap, PixelFormat.Format24bppRgb) { }
         public Color this[int x, int y]
         {
             get
             {
-                int ofs = Stride * y + x * 3;
-                return Color.FromArgb(Marshal.ReadByte(Scan0, ofs + 2), Marshal.ReadByte(Scan0, ofs + 1), Marshal.ReadByte(Scan0));
+                byte* PixelB = &Scan0[Stride * y + x * 3];
+                return Color.FromArgb(PixelB[2], PixelB[1], *PixelB);
             }
             set
             {
-                int ofs = Stride * y + x * 3;
-                Marshal.WriteByte(Scan0, ofs, value.R);
-                Marshal.WriteByte(Scan0, ofs + 1, value.R);
-                Marshal.WriteByte(Scan0, ofs + 2, value.R);
+                byte* PixelB = &Scan0[Stride * y + x * 3];
+                *PixelB = value.B;
+                PixelB[1] = value.G;
+                PixelB[2] = value.R;
             }
         }
-        public Color GetPixel(int x, int y)
+        public override Color GetPixel(int x, int y)
         { return this[x, y]; }
-        public void SetPixel(int x, int y, Color color)
+        public override void SetPixel(int x, int y, Color color)
         { this[x, y] = color; }
     }
-    public class BmpProc8 : BmpProc
+    public unsafe class BmpProc8 : BmpProc
     {
         public Color[] Palette { get { return bitmap.Palette.Entries; } }
-        public BmpProc8(Bitmap @Bitmap) : base(Bitmap, PixelFormat.Format8bppIndexed) { }
+        public BmpProc8(Bitmap bitmap) : base(bitmap, PixelFormat.Format8bppIndexed) { }
         public byte this[int x, int y]
         {
-            get
-            {
-                return Marshal.ReadByte(Scan0, Stride * y + x);
-            }
-            set
-            {
-                Marshal.WriteByte(Scan0, Stride * y + x, value);
-            }
+            get { return Scan0[Stride * y + x]; }
+            set { Scan0[Stride * y + x] = value; }
         }
         public byte this[int index]
         {
-            get { return Marshal.ReadByte(Scan0, index); }
-            set { Marshal.WriteByte(Scan0, index, value); }
+            get { return Scan0[index]; }
+            set { Scan0[index] = value; }
         }
-        public Color GetPixel(int x, int y)
+        public override Color GetPixel(int x, int y)
         {
             return Palette[this[x, y]];
         }
-        public void SetPixel(int x, int y, Color color)
+        public override void SetPixel(int x, int y, Color color)
         {
             int i;
             for (i = 0; i < 256; ++i)
@@ -151,22 +145,18 @@ namespace Aont
             {
                 this[x, y] = (byte)i;
             }
-            else
-            {
-                throw new Exception("Color not found in Palette");
-            }
         }
     }
-    public class BmpProc1 : BmpProc
+    public unsafe class BmpProc1 : BmpProc
     {
-        public BmpProc1(Bitmap @Bitmap) : base(Bitmap, PixelFormat.Format1bppIndexed) { }
+        public BmpProc1(Bitmap bitmap) : base(bitmap, PixelFormat.Format1bppIndexed) { }
         public bool this[int x, int y]
         {
             get
             {
                 int xr;
                 int ofs = Stride * y + Math.DivRem(x, 8, out xr);
-                return ((Marshal.ReadByte(Scan0, ofs) >> (7 - xr) & 1) == 1);
+                return ((Scan0[ofs] >> (7 - xr) & 1) == 1);
             }
 
             set
@@ -174,35 +164,22 @@ namespace Aont
                 int xr;
                 int ofs = Stride * y + Math.DivRem(x, 8, out xr);
                 if (value)
-                    Marshal.WriteByte(Scan0, ofs,
-                        (byte)(Marshal.ReadByte(Scan0, ofs) | (1 << (7 - xr)))
-                        );
+                    Scan0[ofs] = (byte)(Scan0[ofs] | (1 << (7 - xr)));
                 else
-                    Marshal.WriteByte(Scan0, ofs,
-                        (byte)(Marshal.ReadByte(Scan0, ofs) & (~(1 << (7 - xr))))
-                        );
+                    Scan0[ofs] = (byte)(Scan0[ofs] & (~(1 << (7 - xr))));
             }
         }
         public bool this[int index]
         {
-            get
-            {
-                int xr;
-                int ofs = Math.DivRem(index, 8, out xr);
-                return ((Marshal.ReadByte(Scan0, ofs) >> (7 - xr) & 1) == 1);
-            }
+            get { return ((*(Scan0 + index / 8) >> (7 - (index % 8)) & 1) == 1); }
             set
             {
                 int xr;
                 int ofs = Math.DivRem(index, 8, out xr);
                 if (value)
-                    Marshal.WriteByte(Scan0, ofs,
-                        (byte)(Marshal.ReadByte(Scan0, ofs) | (1 << (7 - xr)))
-                        );
+                    Scan0[ofs] = (byte)(Scan0[ofs] | (1 << (7 - xr)));
                 else
-                    Marshal.WriteByte(Scan0, ofs,
-                        (byte)(Marshal.ReadByte(Scan0, ofs) & (~(1 << (7 - xr))))
-                        );
+                    Scan0[ofs] = (byte)(Scan0[ofs] & (~(1 << (7 - xr))));
             }
         }
     }
