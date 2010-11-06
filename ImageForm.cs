@@ -41,38 +41,35 @@ namespace Aont
 
                 if (convtype == ConvertType.Feedback)
                 {
-                    unsafe
+                    double[,] brightness = new double[Width, Height];
+                    double b, b_ave = 0, b_sigma = 0;
+                    using (var proc_original = new BmpProc32(Original))
                     {
-                        double[,] brightness = new double[Width, Height];
-                        double b, b_ave = 0, b_sigma = 0;
-                        using (var proc_original = new BmpProc32(Original))
-                        {
-                            for (int y = 0; y < Height; ++y)
-                            {
-                                for (int x = 0; x < Width; ++x)
-                                {
-                                    b = brightness[x, y] = proc_original.GetPixel(x, y).GetBrightness();
-                                    b_ave += b;
-                                    b_sigma += b * b;
-                                }
-                            }
-                            b_ave /= Width * Height;
-                            b_sigma = Math.Sqrt(b_sigma / (Width * Height) - b_ave * b_ave);
-                        }
-
                         for (int y = 0; y < Height; ++y)
                         {
                             for (int x = 0; x < Width; ++x)
                             {
-                                b = brightness[x, y];
-                                alpha = rand.NextDouble();
-                                beta = rand.NextDouble();
-                                b += b_sigma * Math.Sqrt(-2 * Math.Log(alpha)) * Math.Cos(2 * Math.PI * beta);
-                                if (b > b_ave)
-                                    proc[x, y] = true;
-                                else
-                                    proc[x, y] = false;
+                                b = brightness[x, y] = proc_original.GetPixel(x, y).GetBrightness();
+                                b_ave += b;
+                                b_sigma += b * b;
                             }
+                        }
+                        b_ave /= Width * Height;
+                        b_sigma = Math.Sqrt(b_sigma / (Width * Height) - b_ave * b_ave);
+                    }
+
+                    for (int y = 0; y < Height; ++y)
+                    {
+                        for (int x = 0; x < Width; ++x)
+                        {
+                            b = brightness[x, y];
+                            alpha = rand.NextDouble();
+                            beta = rand.NextDouble();
+                            b += b_sigma * Math.Sqrt(-2 * Math.Log(alpha)) * Math.Cos(2 * Math.PI * beta);
+                            if (b > b_ave)
+                                proc[x, y] = true;
+                            else
+                                proc[x, y] = false;
                         }
                     }
                 }
